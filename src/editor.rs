@@ -196,7 +196,7 @@ impl Editor {
         let status = format!(
             " {}{}    Ln {}, Col {}    Ctrl-S Save | Ctrl-Q Quit",
             filename,
-            modified,>
+            modified,
             self.cursor_y + 1,
             self.cursor_x + 1,
         );
@@ -207,4 +207,5 @@ impl Editor {
 
         frame.render_widget(paragraph, area);
     }
+
 }
