@@ -1,5 +1,5 @@
 use std::{
-    fs, io, path::{PathBuf},
+    fs::{self, File}, io, path::PathBuf,
 };
 
 use crossterm::{
@@ -22,39 +22,47 @@ pub struct Editor {
 }
 
 impl Editor {
-    pub fn new(file_path: Option<PathBuf>) -> io::Result<Self> {
-        let lines = match &file_path {
-            Some(path) => {
-                if path.exists() {
-                    let contents = fs::read_to_string(path)?;
+    pub fn new() -> io::Result<Self> {
+        let mut lines = Vec::new();
+        lines.push(String::new());
+        
+        Ok(Self {
+            lines,
+            cursor_x: 0,
+            cursor_y: 0,
+            scroll_y: 0,
+            file_path: None,
+            dirty: false,
+        })
+    }
 
-                    let mut lines: Vec<String> =
-                        contents.lines().map(String::from).collect();
+    pub fn new_with_file(file_path: PathBuf) -> io::Result<Self> {
+        if !file_path.exists() {
+            File::create_new(file_path.as_path())?;
+        }
 
-                    if lines.is_empty() {
-                        lines.push(String::new());
-                    }
+        if !file_path.is_file() {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "path is not a file",
+            ));
+        }
+        
+        let contents = fs::read_to_string(file_path.clone())?;
 
-                    lines
-                } else {
-                    let mut lines = Vec::new();
-                    lines.push(String::new());
-                    lines
-                }
-            }
-            None => {
-                let mut lines = Vec::new();
-                lines.push(String::new());
-                lines
-            }
-        };
+        let mut lines: Vec<String> =
+            contents.split("\n").map(String::from).collect();
+
+        if lines.is_empty() {
+            lines.push(String::new());
+        }
 
         Ok(Self {
             lines,
             cursor_x: 0,
             cursor_y: 0,
             scroll_y: 0,
-            file_path,
+            file_path: Some(file_path),
             dirty: false,
         })
     }

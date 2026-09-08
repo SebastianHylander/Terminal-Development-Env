@@ -32,7 +32,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         Some(path) => {
             if path.is_dir() {
-                let mut editor = Editor::new(None)?;
+                let mut editor = Editor::new()?;
 
                 let mut explorer = Explorer::new_from_root_dir(path)?;
 
@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 result?;
             } else {
-                let mut editor = Editor::new(Some(path.clone()))?;
+                let mut editor = Editor::new_with_file(path.clone())?;
 
                 let mut explorer = Explorer::new_from_file(path)?;
 
