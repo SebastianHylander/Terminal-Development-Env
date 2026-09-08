@@ -16,6 +16,10 @@ use ratatui::{
     Terminal,
 };
 
+use ratatui::widgets::FrameExt as _;
+
+use ratatui_explorer::{FileExplorerBuilder, FileExplorer, Theme};
+
 struct Editor {
     lines: Vec<String>,
     cursor_x: usize,
@@ -161,10 +165,11 @@ impl Editor {
     }
 }
 
-struct FileExplorer {
-    root_dir: PathBuf
+struct Explorer {
+    root_dir: PathBuf,
+    file_explorer: FileExplorer
 } 
-impl FileExplorer {
+impl Explorer {
     fn new(dir_path: PathBuf) -> io::Result<Self> {
         if !dir_path.exists() {
             return Err(io::Error::new(
@@ -179,8 +184,17 @@ impl FileExplorer {
             ));
         }
 
+        let mut file_explorer = FileExplorerBuilder::build_with_working_dir(dir_path.clone()).unwrap();
+
+        let title = String::from(dir_path.clone().file_stem().unwrap().to_str().unwrap());
+
+        let theme = Theme::default().with_title_top(move |_| {format!("{}/",  title.clone()).into()});
+        file_explorer.set_theme(theme);
+        
+
         Ok(Self{
-            root_dir: dir_path
+            root_dir: dir_path,
+            file_explorer: file_explorer
         })
         
     }
@@ -199,7 +213,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             if path.is_dir() {
                 let mut editor = Editor::new(None)?;
 
-                let mut explorer = FileExplorer::new(path)?;
+                let mut explorer = Explorer::new(path)?;
 
                 enable_raw_mode()?;
 
@@ -227,7 +241,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             } else {
                 let mut editor = Editor::new(Some(path.clone()))?;
 
-                let mut explorer = FileExplorer::new(path.parent().unwrap().to_path_buf())?;
+                let mut explorer = Explorer::new(path.parent().unwrap().to_path_buf())?;
 
                 enable_raw_mode()?;
 
@@ -266,7 +280,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 fn run_editor(
     terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
     editor: &mut Editor,
-    explorer: &mut FileExplorer
+    explorer: &mut Explorer
 ) -> Result<(), Box<dyn std::error::Error>> {
     loop {
         terminal.draw(|frame| {
@@ -422,14 +436,8 @@ fn draw_status_bar(
 
 fn draw_explorer(
     frame: &mut ratatui::Frame,
-    explorer: &FileExplorer,
+    explorer: &Explorer,
     area: ratatui::layout::Rect,
 ) {
-    let title = explorer.root_dir.file_name().unwrap_or_default().to_str().unwrap_or_default(); // Need to look into this again later
-
-    let paragraph = Paragraph::new("File1\nFile2\nDict1\n - File3")
-        .block(Block::default().borders(Borders::ALL).title(title));
-
-    frame.render_widget(paragraph, area);
-
+    frame.render_widget_ref(explorer.file_explorer.widget(), area);
 }

@@ -5,5 +5,5 @@ edition = "2024"
 
 [dependencies]
 crossterm = "0.29"
-ratatui = "0.29"
+ratatui = {version = "0.30",  features = ["unstable-widget-ref"]}
 ratatui-explorer = "0.3.0"
