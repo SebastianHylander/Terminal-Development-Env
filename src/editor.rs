@@ -2,10 +2,7 @@ use std::{
     fs::{self, File}, io, path::PathBuf,
 };
 
-use crossterm::{
-    event::{KeyCode},
-
-};
+use crossterm::event::{Event, KeyCode};
 
 use ratatui::{
     style::{Color, Style},
@@ -214,6 +211,36 @@ impl Editor {
             .block(Block::default().borders(Borders::ALL));
 
         frame.render_widget(paragraph, area);
+    }
+
+    pub fn handle_event(self: &mut Editor, e : Event){
+        match e {
+            Event::Key(key) => {
+                match key.code {
+                    KeyCode::Char(character) => {
+                        self.insert_char(character);
+                    }
+
+                    KeyCode::Enter => {
+                        self.insert_newline();
+                    }
+
+                    KeyCode::Backspace => {
+                        self.backspace();
+                    }
+
+                    KeyCode::Left
+                    | KeyCode::Right
+                    | KeyCode::Up
+                    | KeyCode::Down => {
+                        self.move_cursor(key.code);
+                    }
+
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
     }
 
 }

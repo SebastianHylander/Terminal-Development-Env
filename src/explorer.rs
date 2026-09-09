@@ -2,6 +2,7 @@ use std::{
     io, path::{PathBuf},
 };
 
+use crossterm::event::Event;
 use ratatui::widgets::FrameExt as _;
 
 use ratatui_explorer::{FileExplorerBuilder, FileExplorer, Theme};
@@ -46,5 +47,9 @@ impl Explorer {
     
     pub fn draw(self: &Explorer, frame: &mut ratatui::Frame, area: ratatui::layout::Rect) {
         frame.render_widget_ref(self.file_explorer.widget(), area);
+    }
+
+    pub fn handle_event(self: &mut Explorer, e : Event) {
+        self.file_explorer.handle(&e);
     }
 }

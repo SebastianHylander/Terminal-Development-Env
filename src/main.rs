@@ -21,6 +21,19 @@ use ratatui::{
     Terminal,
 };
 
+use crate::input_modes::{EDITOR, EXPLORER};
+
+enum input_modes {
+    EDITOR,
+    EXPLORER
+}
+
+struct IDE {
+    editor : Editor,
+    explorer : Explorer,
+    input_mode : input_modes
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let path = env::args().nth(1).map(PathBuf::from);
@@ -47,7 +60,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 terminal.clear()?;
 
-                let result = run_editor(&mut terminal, &mut editor, &mut explorer);
+                let mut ide = IDE {editor : editor, explorer : explorer, input_mode : EXPLORER};
+
+                let result = run_editor(&mut terminal, &mut ide);
 
                 disable_raw_mode()?;
 
@@ -75,7 +90,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 terminal.clear()?;
 
-                let result = run_editor(&mut terminal, &mut editor, &mut explorer);
+                let mut ide = IDE {editor : editor, explorer : explorer, input_mode : EDITOR};
+
+                let result = run_editor(&mut terminal, &mut ide);
 
                 disable_raw_mode()?;
 
@@ -98,8 +115,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 fn run_editor(
     terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
-    editor: &mut Editor,
-    explorer: &mut Explorer
+    ide : &mut IDE
 ) -> Result<(), Box<dyn std::error::Error>> {
     loop {
         terminal.draw(|frame| {
@@ -127,66 +143,73 @@ fn run_editor(
 
             let visible_height = editor_area.height.saturating_sub(2) as usize;
 
-            editor.ensure_cursor_visible(visible_height);
+            ide.editor.ensure_cursor_visible(visible_height);
 
-            editor.draw(frame, editor_area);
-            editor.draw_status_bar(frame, status_area);
-            explorer.draw(frame, explorer_area);
+            ide.editor.draw(frame, editor_area);
+            ide.editor.draw_status_bar(frame, status_area);
+            ide.explorer.draw(frame, explorer_area);
 
             
         })?;
 
-        if let Event::Key(key) = event::read()? {
-            if handle_key_event(editor, key)? {
-                break;
+        let e= event::read()?;
+        
+        match e{
+            Event::Key(key) => {
+                match handle_key_event(ide, key) {
+                    Some(stop) => {
+                        if stop {
+                            break;
+                        } 
+                    }
+                    None => {
+                        match ide.input_mode {
+                            EXPLORER => {
+                                ide.explorer.handle_event(e);
+                            }
+                            EDITOR => {
+                                ide.editor.handle_event(e);
+                            }
+                        }
+                    }
+                }
             }
-        }
+            _ => {}
+        }        
     }
 
     Ok(())
 }
 
 fn handle_key_event(
-    editor: &mut Editor,
+    ide: &mut IDE,
     key: KeyEvent,
-) -> Result<bool, Box<dyn std::error::Error>> {
+) -> Option<bool> {
     if key.modifiers.contains(KeyModifiers::CONTROL) {
         match key.code {
             KeyCode::Char('q') => {
-                return Ok(true);
+                return Some(true);
             }
 
             KeyCode::Char('s') => {
-                editor.save()?;
-                return Ok(false);
+                ide.editor.save().ok()?;
+                return Some(false);
             }
 
+            KeyCode::Char('e') => {
+                match ide.input_mode {
+                    EXPLORER => {
+                        ide.input_mode = EDITOR;
+                    }
+
+                    EDITOR => {
+                        ide.input_mode = EXPLORER;
+                    }
+                }
+                return Some(false)
+            }
             _ => {}
         }
     }
-
-    match key.code {
-        KeyCode::Char(character) => {
-            editor.insert_char(character);
-        }
-
-        KeyCode::Enter => {
-            editor.insert_newline();
-        }
-
-        KeyCode::Backspace => {
-            editor.backspace();
-        }
-
-        KeyCode::Left
-        | KeyCode::Right
-        | KeyCode::Up
-        | KeyCode::Down => {
-            editor.move_cursor(key.code);
-        }
-
-        _ => {}
-    }
-
-    Ok(false)
+    None
 }
