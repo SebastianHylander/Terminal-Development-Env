@@ -5,7 +5,7 @@ mod editor;
 use editor::Editor;
 
 use std::{
-    env, io::{stdout}, path::{PathBuf},
+    env, io::{self, stdout}, path::PathBuf,
 };
 
 use crossterm::{
@@ -156,7 +156,7 @@ fn run_editor(
         
         match e{
             Event::Key(key) => {
-                match handle_key_event(ide, key) {
+                match handle_key_event(ide, key)? {
                     Some(stop) => {
                         if stop {
                             break;
@@ -165,7 +165,13 @@ fn run_editor(
                     None => {
                         match ide.input_mode {
                             EXPLORER => {
-                                ide.explorer.handle_event(e);
+                                match ide.explorer.handle_event(e)? {
+                                    Some(path) => {
+                                        ide.editor = Editor::new_with_file(path)?;
+                                    }
+
+                                    None => {}
+                                };
                             }
                             EDITOR => {
                                 ide.editor.handle_event(e);
@@ -184,16 +190,16 @@ fn run_editor(
 fn handle_key_event(
     ide: &mut IDE,
     key: KeyEvent,
-) -> Option<bool> {
+) -> io::Result<Option<bool>> {
     if key.modifiers.contains(KeyModifiers::CONTROL) {
         match key.code {
             KeyCode::Char('q') => {
-                return Some(true);
+                return Ok(Some(true));
             }
 
             KeyCode::Char('s') => {
-                ide.editor.save().ok()?;
-                return Some(false);
+                ide.editor.save()?;
+                return Ok(Some(false));
             }
 
             KeyCode::Char('e') => {
@@ -206,10 +212,10 @@ fn handle_key_event(
                         ide.input_mode = EXPLORER;
                     }
                 }
-                return Some(false)
+                return Ok(Some(false))
             }
             _ => {}
         }
     }
-    None
+    Ok(None)
 }

@@ -2,7 +2,7 @@ use std::{
     io, path::{PathBuf},
 };
 
-use crossterm::event::Event;
+use crossterm::event::{Event, KeyCode};
 use ratatui::widgets::FrameExt as _;
 
 use ratatui_explorer::{FileExplorerBuilder, FileExplorer, Theme};
@@ -49,7 +49,21 @@ impl Explorer {
         frame.render_widget_ref(self.file_explorer.widget(), area);
     }
 
-    pub fn handle_event(self: &mut Explorer, e : Event) {
-        self.file_explorer.handle(&e);
+    pub fn handle_event(self: &mut Explorer, e : Event) -> io::Result<Option<PathBuf>> {
+        match e {
+            Event::Key(key) => {
+                match key.code {
+                    KeyCode::Enter => {
+                        if self.file_explorer.current().is_file(){
+                            return Ok(Some(self.file_explorer.current().path.clone()));
+                        }
+                    }
+                    _ => {}
+                }
+            }
+            _ => {}
+        }
+        self.file_explorer.handle(&e)?;
+        Ok(None)
     }
 }
