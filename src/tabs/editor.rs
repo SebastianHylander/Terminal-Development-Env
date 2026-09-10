@@ -5,8 +5,7 @@ use std::{
 use crossterm::event::{Event, KeyCode};
 
 use ratatui::{
-    style::{Color, Style},
-    widgets::{Block, Borders, Paragraph}
+    layout::{Constraint, Direction, Layout}, style::{Color, Style}, widgets::{Block, Borders, Paragraph}
 };
 
 pub struct Editor {
@@ -161,8 +160,28 @@ impl Editor {
         }
     }
 
-    pub fn draw(self: &Editor, frame: &mut ratatui::Frame, area: ratatui::layout::Rect) {
+    pub fn get_file_name(& self) -> Option<String> {
+        Some(String::from(self.file_path.clone()?.file_name()?.to_str()?))
+    }
+
+    pub fn draw(self: &mut Editor, frame: &mut ratatui::Frame, area: ratatui::layout::Rect) {
+
+        let editor_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Min(1),
+                Constraint::Length(3),
+            ])
+            .split(area);
+
+        let editor_area = editor_layout[0];
+        let status_area = editor_layout[1];
+
         let visible_height = area.height.saturating_sub(2) as usize;
+
+        self.ensure_cursor_visible(visible_height);
+
+        self.draw_status_bar(frame, status_area);
 
         let text = self.lines
             .iter()
@@ -178,7 +197,7 @@ impl Editor {
         let paragraph = Paragraph::new(text)
             .block(Block::default().borders(Borders::ALL));
 
-        frame.render_widget(paragraph, area);
+        frame.render_widget(paragraph, editor_area);
 
         let cursor_screen_y =
                 area.y + 1 + (self.cursor_y - self.scroll_y) as u16;

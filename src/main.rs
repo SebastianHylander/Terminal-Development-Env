@@ -1,8 +1,8 @@
 mod explorer;
 use explorer::Explorer;
 
-mod editor;
-use editor::Editor;
+mod tabs;
+use tabs::TabsWindow;
 
 use std::{
     env, io::{self, stdout}, path::PathBuf,
@@ -29,7 +29,7 @@ enum input_modes {
 }
 
 struct IDE {
-    editor : Editor,
+    tabs : TabsWindow,
     explorer : Explorer,
     input_mode : input_modes
 }
@@ -45,7 +45,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         
         Some(path) => {
             if path.is_dir() {
-                let mut editor = Editor::new()?;
+                let mut tabs = TabsWindow::new()?;
 
                 let mut explorer = Explorer::new_from_root_dir(path)?;
 
@@ -60,7 +60,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 terminal.clear()?;
 
-                let mut ide = IDE {editor : editor, explorer : explorer, input_mode : EXPLORER};
+                let mut ide = IDE {tabs : tabs, explorer : explorer, input_mode : EXPLORER};
 
                 let result = run_editor(&mut terminal, &mut ide);
 
@@ -75,7 +75,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 result?;
             } else {
-                let mut editor = Editor::new_with_file(path.clone())?;
+                let mut tabs = TabsWindow::new_with_file(path.clone())?;
 
                 let mut explorer = Explorer::new_from_file(path)?;
 
@@ -90,7 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                 terminal.clear()?;
 
-                let mut ide = IDE {editor : editor, explorer : explorer, input_mode : EDITOR};
+                let mut ide = IDE {tabs : tabs, explorer : explorer, input_mode : EDITOR};
 
                 let result = run_editor(&mut terminal, &mut ide);
 
@@ -130,26 +130,12 @@ fn run_editor(
                 ])
                 .split(area);
 
-            let editor_layout = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Min(1),
-                    Constraint::Length(3),
-                ])
-                .split(layout[1]);
+
             let explorer_area = layout[0];
-            let editor_area = editor_layout[0];
-            let status_area = editor_layout[1];
+            let tabs_area = layout[1];
 
-            let visible_height = editor_area.height.saturating_sub(2) as usize;
-
-            ide.editor.ensure_cursor_visible(visible_height);
-
-            ide.editor.draw(frame, editor_area);
-            ide.editor.draw_status_bar(frame, status_area);
             ide.explorer.draw(frame, explorer_area);
-
-            
+            ide.tabs.draw(frame, tabs_area);            
         })?;
 
         let e= event::read()?;
@@ -167,14 +153,14 @@ fn run_editor(
                             EXPLORER => {
                                 match ide.explorer.handle_event(e)? {
                                     Some(path) => {
-                                        ide.editor = Editor::new_with_file(path)?;
+                                        ide.tabs.new_tab(path)?;
                                     }
 
                                     None => {}
                                 };
                             }
                             EDITOR => {
-                                ide.editor.handle_event(e);
+                                ide.tabs.handle_event(e);
                             }
                         }
                     }
@@ -198,7 +184,7 @@ fn handle_key_event(
             }
 
             KeyCode::Char('s') => {
-                ide.editor.save()?;
+                ide.tabs.save()?;
                 return Ok(Some(false));
             }
 
