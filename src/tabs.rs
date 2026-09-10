@@ -28,6 +28,7 @@ impl TabsWindow {
 
     pub fn new_tab(self : &mut TabsWindow, file_path : PathBuf) -> io::Result<()> {
         self.tabs.push(Editor::new_with_file(file_path)?);
+        self.current = self.tabs.len() - 1;
         Ok(())
     }
 
@@ -50,9 +51,13 @@ impl TabsWindow {
 
         let tabs = Tabs::new(self.tabs.iter().map(
             |e : &Editor| {
-                e.get_file_name().unwrap_or_else(
-                    || {String::from("unnamed")}
-                )
+                let s = e.get_file_name().unwrap_or_else(
+                    || {String::from("[No Name]")}
+                );
+                if e.dirty {
+                    s+"*"
+                }
+                else {s}
             })
         .map(format_tab_title))
         .style(Color::White)
@@ -95,10 +100,10 @@ impl TabsWindow {
 }
 
 fn format_tab_title(filename: String) -> String {
-    let max_len = 10;
+    let max_len = 15;
     if filename.len() > max_len {
         let (name, ext) = filename.rsplit_once('.').unwrap_or((&filename, ""));
-        let suffix = format!("...{}", ext);
+        let suffix = format!("..{}", ext);
 
         format!("{}{}", &name[..max_len - suffix.len()], suffix)
     } else {

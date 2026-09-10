@@ -154,6 +154,7 @@ fn run_editor(
                                 match ide.explorer.handle_event(e)? {
                                     Some(path) => {
                                         ide.tabs.new_tab(path)?;
+                                        ide.input_mode = EDITOR;
                                     }
 
                                     None => {}

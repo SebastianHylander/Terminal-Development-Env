@@ -14,7 +14,7 @@ pub struct Editor {
     cursor_y: usize,
     scroll_y: usize,
     file_path: Option<PathBuf>,
-    dirty: bool,
+    pub dirty: bool,
 }
 
 impl Editor {
