@@ -55,7 +55,7 @@ impl TabsWindow {
                     || {String::from("[No Name]")}
                 );
                 if e.dirty {
-                    s+"*"
+                    format!("{}{}", "[*]", s)
                 }
                 else {s}
             })
