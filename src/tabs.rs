@@ -1,5 +1,5 @@
 mod editor;
-use std::{io, path::PathBuf};
+use std::{io, path::PathBuf, format};
 
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use editor::Editor;
